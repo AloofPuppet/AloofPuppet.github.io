@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokemon Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .filter-container {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        fieldset {
+            margin: 10px;
+            padding: 10px;
+        }
+        .pokemon-card {
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px;
+            background-color: #f9f9f9;
+        }
+        button { margin: 5px; padding: 5px 10px; }
+        #output { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Pokemon Generator</h1>
+    <div class="filter-container" id="filter-container">
+        <div>
+            <input type="text" id="excluded_box" placeholder="Enter Pokemon name" />
+            <button onclick="addExcluded()">Add to excluded list</button>
+            <p>Excluded pokemon:</p>
+            <ol id="excluded_list"></ol>
+        </div>
+    </div>
+
+    <button onclick="generatePokemon()">Generate Pokemon</button>
+
+    <div id="output"></div>
+
+    <script>
+        let pokemonData = [];
+        let filters = {
+            "type": [],
+            "environment": [],
+            "generation": [],
+            "rank": ["0", "1", "2", "3", "4", "5"]
+        };
+		const max_rank = 5;
+		const rankNames = {"0":"Starter", "1":"Beginner","2":"Amateur","3":"Ace","4":"Pro","5":"Master",}
+		const skills = ["Brawl", "Channel", "Clash",
+						"Evasion", "Alert", "Athletic",
+						"Nature", "Stealth", "Allure",
+						"Etiquette", "Intimidate", "Perform"]
+		let result = {"exclusions": []};
+
+
+        
+        fetch('PokeRolePokemon - Sheet1(1) (1).csv')
+            .then(response => response.text())
+            .then(csvText => {
+                pokemonData = parseCSV(csvText);
+                populateFilters();
+                createFilterBoxes();
+            })
+            .catch(error => {
+                console.error('Error loading CSV:', error);
+                document.getElementById('output').textContent = 'Error loading Pokemon database. Please check the console for details.';
+            });
+
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+            return lines.slice(1).map(line => {
+                const values = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g)
+                    .map(v => v.trim().replace(/^"""|"""$/g, '').replace(/^"|"$/g, ''));
+                return headers.reduce((obj, header, index) => {
+                    let value = values[index];
+                    if (['Types', 'Environment', 'Abilities'].includes(header)) {
+                        value = value.replace(/^\[|\]$/g, '').split(';').map(item => item.trim().replace(/^"|"$/g, ''));
+                    } else if (header === 'Moves') {
+                        value = value.replace(/^\[|\]$/g, '').split('];[').map(move => {
+                            const [moveName, rank] = move.replace(/[\[\]]/g, '').split(';');
+                            return [moveName.trim().replace(/^"|"$/g, ''), parseInt(rank) || 0];
+                        });
+                    } else if (['Str min', 'Str max', 'Dex min', 'Dex max', 'Vit min', 'Vit Max', 'Spec Min', 'Spec Max', 'Insight Min', 'Insight Max', 'HP Min', 'Int Rank Min', 'Generation'].includes(header)) {
+                        value = parseInt(value) || 0;
+                    }
+                    obj[header] = value;
+                    return obj;
+                }, {});
+            });
+        }
+
+        function populateFilters() {
+            pokemonData.forEach(pokemon => {
+                pokemon.Types.forEach(type => {
+                    if (!filters.type.includes(type)) filters.type.push(type);
+                });
+                pokemon.Environment.forEach(env => {
+                    if (!filters.environment.includes(env)) filters.environment.push(env);
+                });
+                if (!filters.generation.includes(pokemon.Generation.toString())) {
+                    filters.generation.push(pokemon.Generation.toString());
+                }
+            });
+
+            for (let key in filters) {
+                filters[key].sort();
+            }
+        }
+
+        function createFilterCheckBoxes(filter_list, fieldset, filter_name) {
+			console.log(filter_name);
+            for (const filter_box_name of filter_list) {
+				console.log(filter_box_name);
+
+                var div = document.createElement("div");
+                var label = document.createElement("label");
+                var input = document.createElement("input");
+                input.type = "checkbox";
+                input.id = filter_box_name;
+                input.value = filter_box_name;
+                input.name = filter_name;
+                input.checked = true;
+				label.htmlFor = filter_box_name;
+
+				
+				if (filter_name == "rank") {
+					label.appendChild(document.createTextNode(rankNames[filter_box_name]));
+				} else {
+					label.appendChild(document.createTextNode(filter_box_name));
+				}
+                div.append(label);
+                div.append(input);
+                fieldset.appendChild(div);
+            }
+        }
+
+        function createFilterBoxes() {
+            var filter_container = document.getElementById("filter-container");
+            for (const [filter_name, filter_list] of Object.entries(filters)) {
+                var fieldset = document.createElement('fieldset');
+                var legend = document.createElement('legend');
+                legend.appendChild(document.createTextNode(filter_name));
+                var button = document.createElement('button');
+                button.onclick = function() { toggleAll(filter_name) };
+                button.appendChild(document.createTextNode("toggle all/none"));
+
+                fieldset.appendChild(legend);
+                createFilterCheckBoxes(filter_list, fieldset, filter_name);
+                fieldset.appendChild(button);
+                filter_container.appendChild(fieldset);
+            }
+        }
+
+        function createFilter(filter_name) {
+            var filter_boxes = document.getElementsByName(filter_name);
+            var filter_list = [];
+            for (const filter_box of filter_boxes) {
+                if (filter_box.checked) {
+                    filter_list.push(filter_box.value);
+                }
+            }
+            return filter_list;
+        }
+
+        function createFilters() {
+            for (const [filter_name, filter_list] of Object.entries(filters)) {
+                result[filter_name] = createFilter(filter_name);
+            }
+        }
+
+        function addExcluded() {
+            var excluded_box = document.getElementById("excluded_box")
+            var exclude = excluded_box.value;
+            if (!exclude) {
+                return;
+            }
+            result["exclusions"].push(exclude);
+            excluded_box.value = "";
+            var excluded_list = document.getElementById("excluded_list");
+            var entry = document.createElement('li');
+            entry.appendChild(document.createTextNode(exclude));
+            excluded_list.appendChild(entry);
+        }
+
+        function toggleAll(filter_name) {
+            var filter_boxes = document.getElementsByName(filter_name);
+            var new_setting = !filter_boxes[0].checked;
+            for (const filter_box of filter_boxes) {
+                filter_box.checked = new_setting;
+            }
+        }
+
+        function generatePokemon() {
+            createFilters();
+            const generatedPokemon = generateRandomPokemon(result);
+            if (generatedPokemon) {
+                displayPokemonInfo(generatedPokemon);
+            } else {
+                document.getElementById('output').textContent = 'Failed to generate Pokemon. Please try again.';
+            }
+        }
+
+        function randomIntInclusive(min, max) {
+            return Math.floor(Math.random() * (max - min + 1) + min);
+        }
+        
+        function generateRandomPokemon(input) {
+
+
+            let determinedFilteredPokemon = pokemonData.filter(pokemon => {
+                return (
+                    (input.type.some(t => pokemon.Types.includes(t))) &&
+                    (input.environment.some(e => pokemon.Environment.includes(e))) &&
+                    (input.generation.includes(pokemon.Generation.toString())) &&
+                    !input.exclusions.includes(pokemon.Name.toLowerCase())
+                );
+            });
+			
+			if (determinedFilteredPokemon.length === 0) {
+                return null;
+            }
+			
+			var filtredPokemon = [];
+			while(true) {
+				for(pokemon of determinedFilteredPokemon) {
+					const min_rank = pokemon["Int Rank Min"];
+					const rank = randomIntInclusive(min_rank, max_rank);
+					pokemon["rank"] = rank;
+				}
+				filteredPokemon = determinedFilteredPokemon.filter(pokemon => {
+					return input.rank.includes(pokemon.rank.toString());
+					});
+				if(filteredPokemon.length > 0 ){
+					break;
+				}
+			}				
+
+            const selectedPokemon = filteredPokemon[Math.floor(Math.random() * filteredPokemon.length)];
+            const moves = selectMoves(selectedPokemon.Moves, selectedPokemon.rank);
+            
+            try {
+                const stats = calculateStats(selectedPokemon, selectedPokemon.rank);
+                
+                return {
+                    pokemon_name: selectedPokemon.Name,
+                    pokemon_pic: selectedPokemon.Pic,
+                    type: selectedPokemon.Types,
+                    rank: selectedPokemon.rank,
+                    ability: selectedPokemon.Abilities[Math.floor(Math.random() * selectedPokemon.Abilities.length)],
+                    hp: selectedPokemon["HP Min"] + stats.vitality,
+                    strength: stats.strength,
+                    dexterity: stats.dexterity,
+                    vitality: stats.vitality,
+                    special: stats.special,
+                    insight: stats.insight,
+                    moves: moves
+                };
+            } catch (error) {
+                console.error("Error generating Pokemon stats:", error);
+                return null;
+            }
+        }
+
+        function calculateStats(pokemon, rank) {
+            let stats = {
+                strength: pokemon["Str min"],
+                dexterity: pokemon["Dex min"],
+                vitality: pokemon["Vit min"],
+                special: pokemon["Spec Min"],
+                insight: pokemon["Insight Min"]
+            };
+
+            let pointsToDistribute = 2 * rank;
+            let statNames = Object.keys(stats);
+            
+            while (pointsToDistribute > 0) {
+                let availableStats = statNames.filter(stat => {
+                    let maxStatKey = {
+                        "strength": "Str max",
+                        "dexterity": "Dex max",
+                        "vitality": "Vit Max",
+                        "special": "Spec Max",
+                        "insight": "Insight Max"
+                    }[stat];
+                    return stats[stat] < pokemon[maxStatKey];
+                });
+
+                if (availableStats.length === 0) {
+                    break;
+                }
+                
+                let randomStat = availableStats[Math.floor(Math.random() * availableStats.length)];
+                stats[randomStat]++;
+                pointsToDistribute--;
+            }
+            
+            return stats;
+        }
+
+        function selectMoves(moves, rank) {
+            const filteredMoves = moves.filter(move => move[1] <= rank);
+            let numMoves;
+            if (rank === 0) {
+                numMoves = Math.floor(Math.random() * 2) + 1;
+            } else if (rank === 1) {
+                numMoves = Math.floor(Math.random() * 3) + 2;
+            } else {
+                numMoves = 4;
+            }
+            
+            const selectedMoves = [];
+            for (let i = 0; i < numMoves && filteredMoves.length > 0; i++) {
+                const index = Math.floor(Math.random() * filteredMoves.length);
+                selectedMoves.push(filteredMoves[index][0]);
+                filteredMoves.splice(index, 1);
+            }
+            
+            return selectedMoves;
+        }
+
+        function displayPokemonInfo(pokemon) {
+            const output = document.getElementById('output');
+			var displayRank = rankNames[pokemon.rank];
+            output.innerHTML = `
+                <div class="pokemon-card">
+                    <h2>${pokemon.pokemon_name}</h2>
+                    <img src="images/${pokemon.pokemon_pic}" alt="${pokemon.pokemon_name}" style="max-width: 200px;">
+                    <p><strong>Type:</strong> ${pokemon.type.join(', ')}</p>
+                    <p><strong>Rank:</strong> ${displayRank}</p>
+                    <p><strong>Ability:</strong> ${pokemon.ability}</p>
+                    <h3>Stats:</h3>
+                    <ul>
+                        <li>HP: ${pokemon.hp}</li>
+                        <li>Strength: ${pokemon.strength}</li>
+                        <li>Dexterity: ${pokemon.dexterity}</li>
+                        <li>Vitality: ${pokemon.vitality}</li>
+                        <li>Special: ${pokemon.special}</li>
+                        <li>Insight: ${pokemon.insight}</li>
+                    </ul>
+                    <h3>Moves:</h3>
+                    <ul>
+                        ${pokemon.moves.map(move => `<li>${move}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
