@@ -61,6 +61,7 @@
         fetch('PokeRolePokemon - Sheet1(1) (1).csv')
             .then(response => response.text())
             .then(csvText => {
+				console.log(csvText);
                 pokemonData = parseCSV(csvText);
                 populateFilterOptions();
                 createFilterBoxes();
