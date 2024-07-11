@@ -43,27 +43,26 @@
 
     <script>
         let pokemonData = [];
-        let filters = {
+        let filterOptions = {
             "type": [],
             "environment": [],
             "generation": [],
             "rank": ["0", "1", "2", "3", "4", "5"]
         };
+		let exclusions = [];
 		const max_rank = 5;
-		const rankNames = {"0":"Starter", "1":"Beginner","2":"Amateur","3":"Ace","4":"Pro","5":"Master",}
+		const rankNames = {"0":"Starter", "1":"Beginner","2":"Amateur","3":"Ace","4":"Pro","5":"Master",};
 		const skills = ["Brawl", "Channel", "Clash",
 						"Evasion", "Alert", "Athletic",
 						"Nature", "Stealth", "Allure",
-						"Etiquette", "Intimidate", "Perform"]
-		let result = {"exclusions": []};
-
+						"Etiquette", "Intimidate", "Perform"];
 
         
         fetch('PokeRolePokemon - Sheet1(1) (1).csv')
             .then(response => response.text())
             .then(csvText => {
                 pokemonData = parseCSV(csvText);
-                populateFilters();
+                populateFilterOptions();
                 createFilterBoxes();
             })
             .catch(error => {
@@ -95,29 +94,26 @@
             });
         }
 
-        function populateFilters() {
+        function populateFilterOptions() {
             pokemonData.forEach(pokemon => {
                 pokemon.Types.forEach(type => {
-                    if (!filters.type.includes(type)) filters.type.push(type);
+                    if (!filterOptions.type.includes(type)) filterOptions.type.push(type);
                 });
                 pokemon.Environment.forEach(env => {
-                    if (!filters.environment.includes(env)) filters.environment.push(env);
+                    if (!filterOptions.environment.includes(env)) filterOptions.environment.push(env);
                 });
-                if (!filters.generation.includes(pokemon.Generation.toString())) {
-                    filters.generation.push(pokemon.Generation.toString());
+                if (!filterOptions.generation.includes(pokemon.Generation.toString())) {
+                    filterOptions.generation.push(pokemon.Generation.toString());
                 }
             });
 
-            for (let key in filters) {
-                filters[key].sort();
+            for (let key in filterOptions) {
+                filterOptions[key].sort();
             }
         }
 
         function createFilterCheckBoxes(filter_list, fieldset, filter_name) {
-			console.log(filter_name);
             for (const filter_box_name of filter_list) {
-				console.log(filter_box_name);
-
                 var div = document.createElement("div");
                 var label = document.createElement("label");
                 var input = document.createElement("input");
@@ -142,7 +138,7 @@
 
         function createFilterBoxes() {
             var filter_container = document.getElementById("filter-container");
-            for (const [filter_name, filter_list] of Object.entries(filters)) {
+            for (const [filter_name, filter_list] of Object.entries(filterOptions)) {
                 var fieldset = document.createElement('fieldset');
                 var legend = document.createElement('legend');
                 legend.appendChild(document.createTextNode(filter_name));
@@ -169,9 +165,13 @@
         }
 
         function createFilters() {
-            for (const [filter_name, filter_list] of Object.entries(filters)) {
-                result[filter_name] = createFilter(filter_name);
+			let filters = {"exclusions": exclusions};
+
+            for (const [filter_name, filter_list] of Object.entries(filterOptions)) {
+                filters[filter_name] = createFilter(filter_name);
+				//console.log(filter_name);
             }
+			return filters;
         }
 
         function addExcluded() {
@@ -180,7 +180,7 @@
             if (!exclude) {
                 return;
             }
-            result["exclusions"].push(exclude);
+            exclusions.push(exclude);
             excluded_box.value = "";
             var excluded_list = document.getElementById("excluded_list");
             var entry = document.createElement('li');
@@ -197,8 +197,9 @@
         }
 
         function generatePokemon() {
-            createFilters();
-            const generatedPokemon = generateRandomPokemon(result);
+            const filters = createFilters();
+			console.log(filters);
+            const generatedPokemon = generateRandomPokemon(filters);
             if (generatedPokemon) {
                 displayPokemonInfo(generatedPokemon);
             } else {
@@ -210,15 +211,13 @@
             return Math.floor(Math.random() * (max - min + 1) + min);
         }
         
-        function generateRandomPokemon(input) {
-
-
+        function generateRandomPokemon(filters) {
             let determinedFilteredPokemon = pokemonData.filter(pokemon => {
                 return (
-                    (input.type.some(t => pokemon.Types.includes(t))) &&
-                    (input.environment.some(e => pokemon.Environment.includes(e))) &&
-                    (input.generation.includes(pokemon.Generation.toString())) &&
-                    !input.exclusions.includes(pokemon.Name.toLowerCase())
+                    (filters.type.some(t => pokemon.Types.includes(t))) &&
+                    (filters.environment.some(e => pokemon.Environment.includes(e))) &&
+                    (filters.generation.includes(pokemon.Generation.toString())) &&
+                    !filters.exclusions.includes(pokemon.Name.toLowerCase())
                 );
             });
 			
@@ -234,7 +233,7 @@
 					pokemon["rank"] = rank;
 				}
 				filteredPokemon = determinedFilteredPokemon.filter(pokemon => {
-					return input.rank.includes(pokemon.rank.toString());
+					return filters.rank.includes(pokemon.rank.toString());
 					});
 				if(filteredPokemon.length > 0 ){
 					break;
@@ -246,7 +245,7 @@
             
             try {
                 const stats = calculateStats(selectedPokemon, selectedPokemon.rank);
-                
+                const skillStats = calculateSkillStats(selectedPokemon)
                 return {
                     pokemon_name: selectedPokemon.Name,
                     pokemon_pic: selectedPokemon.Pic,
@@ -259,7 +258,8 @@
                     vitality: stats.vitality,
                     special: stats.special,
                     insight: stats.insight,
-                    moves: moves
+                    moves: moves,
+					skillStats: skillStats
                 };
             } catch (error) {
                 console.error("Error generating Pokemon stats:", error);
@@ -267,6 +267,28 @@
             }
         }
 
+		function calculateSkillStats(pokemon) {
+			const rank = pokemon.rank;
+			const maxSkillStat = rank + 1;
+			const pointsAtRank = {0:5, 1:9, 2: 12, 3: 14, 4:15, 5:15};
+			const pointsToDistribute = pointsAtRank[rank];
+			let skillStats = new Map();
+			for( var i = 0; i < skills.length; i++ ) {
+				var skill = skills[i];
+				skillStats.set(skill, 0);
+			}
+			for (var i = 0; i < pointsToDistribute; i++) {
+				const availableSkills = skills.filter(skill => {
+					const isAvailable = skillStats.get(skill) < maxSkillStat;
+					return isAvailable;
+				});
+				const skillIndex = randomIntInclusive(0, availableSkills.length + 1);
+				const skillToBump = availableSkills[skillIndex];
+				skillStats.set(skillToBump, skillStats.get(skillToBump) + 1);
+			}
+			console.log(skillStats);
+			return skillStats;
+		}
         function calculateStats(pokemon, rank) {
             let stats = {
                 strength: pokemon["Str min"],
@@ -326,7 +348,15 @@
 
         function displayPokemonInfo(pokemon) {
             const output = document.getElementById('output');
-			var displayRank = rankNames[pokemon.rank];
+			const  displayRank = rankNames[pokemon.rank];
+			var skillList = []
+			console.log(pokemon.skillStats.size);
+			for (let [skill, stat] of pokemon.skillStats) {
+				if (skill){
+					skillList.push(skill + ":" + stat.toString());
+				}
+			}
+			console.log(skillList);
             output.innerHTML = `
                 <div class="pokemon-card">
                     <h2>${pokemon.pokemon_name}</h2>
@@ -346,6 +376,11 @@
                     <h3>Moves:</h3>
                     <ul>
                         ${pokemon.moves.map(move => `<li>${move}</li>`).join('')}
+                    </ul>
+					<h3>Skills:</h3>
+						${skillList.map(skill => `<li>${skill}</li>`).join('')}
+
+                    <ul>
                     </ul>
                 </div>
             `;
