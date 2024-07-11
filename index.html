@@ -61,7 +61,6 @@
         fetch('PokeRolePokemon - Sheet1(1) (1).csv')
             .then(response => response.text())
             .then(csvText => {
-				console.log(csvText);
                 pokemonData = parseCSV(csvText);
                 populateFilterOptions();
                 createFilterBoxes();
@@ -170,7 +169,6 @@
 
             for (const [filter_name, filter_list] of Object.entries(filterOptions)) {
                 filters[filter_name] = createFilter(filter_name);
-				//console.log(filter_name);
             }
 			return filters;
         }
@@ -199,7 +197,6 @@
 
         function generatePokemon() {
             const filters = createFilters();
-			console.log(filters);
             const generatedPokemon = generateRandomPokemon(filters);
             if (generatedPokemon) {
                 displayPokemonInfo(generatedPokemon);
@@ -283,7 +280,7 @@
 					const isAvailable = skillStats.get(skill) < maxSkillStat;
 					return isAvailable;
 				});
-				const skillIndex = randomIntInclusive(0, availableSkills.length + 1);
+				const skillIndex = randomIntInclusive(0, availableSkills.length - 1);
 				const skillToBump = availableSkills[skillIndex];
 				skillStats.set(skillToBump, skillStats.get(skillToBump) + 1);
 			}
