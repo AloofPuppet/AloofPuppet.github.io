@@ -179,6 +179,7 @@
             if (!exclude) {
                 return;
             }
+			exclude = exclude.toLowerCase();
             exclusions.push(exclude);
             excluded_box.value = "";
             var excluded_list = document.getElementById("excluded_list");
