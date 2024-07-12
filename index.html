@@ -278,7 +278,7 @@
 			let skillStats = new Map();
 			for( var i = 0; i < skills.length; i++ ) {
 				var skill = skills[i];
-				skillStats.set(skill, 0);
+				skillStats.set(skill, 1);
 			}
 			for (var i = 0; i < pointsToDistribute; i++) {
 				const availableSkills = skills.filter(skill => {
