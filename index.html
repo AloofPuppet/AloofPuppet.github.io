@@ -58,7 +58,7 @@
 						"Etiquette", "Intimidate", "Perform"];
 
         
-        fetch('pokeroledatabasetest1.csv')
+        fetch('pokeroledatabasetestfull.csv')
             .then(response => response.text())
             .then(csvText => {
                 pokemonData = parseCSV(csvText);
