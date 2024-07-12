@@ -308,7 +308,7 @@
 			}
 			for (var i = 0; i < pointsToDistribute; i++) {
 				const availableStats = stats.filter(stat => {
-					const isAvailable = statToPoints.get(stat) < maxStat;
+					const isAvailable = statToPoints.get(stat) <= maxStat;
 					return isAvailable;
 				});
 				const statIndex = randomIntInclusive(0, availableStats.length - 1);
