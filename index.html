@@ -57,8 +57,10 @@
 						"Nature", "Stealth", "Allure",
 						"Etiquette", "Intimidate", "Perform"];
 
-        
-        fetch('pokeroledatabase.csv')
+        //const dbName = 'PokeRolePokemon - Sheet1(1) (1).csv';
+		const dbName = 'pokeroledatabase.csv';
+		
+        fetch(dbName)
             .then(response => response.text())
             .then(csvText => {
                 pokemonData = parseCSV(csvText);
@@ -244,7 +246,8 @@
             
             try {
                 const stats = calculateStats(selectedPokemon, selectedPokemon.rank);
-                const skillStats = calculateSkillStats(selectedPokemon)
+                const skillStats = calculateSkillStats(selectedPokemon);
+				const socialStats = calculateSocialStats(selectedPokemon);
                 return {
                     pokemon_name: selectedPokemon.Name,
                     pokemon_pic: selectedPokemon.Pic,
@@ -258,7 +261,8 @@
                     special: stats.special,
                     insight: stats.insight,
                     moves: moves,
-					skillStats: skillStats
+					skillStats: skillStats,
+					socialStats: socialStats
                 };
             } catch (error) {
                 console.error("Error generating Pokemon stats:", error);
@@ -288,6 +292,35 @@
 			console.log(skillStats);
 			return skillStats;
 		}
+		
+		function calculateSocialStats(pokemon){
+			const pointsAtRank = {0:1, 1:2, 2:5, 3:7, 4:9, 5:11};
+			const stats = ["Tough", "Cool", "Clever", "Beauty", "Cute"];
+			return distributeStats(stats, 5, pointsAtRank, pokemon.rank);
+		}
+		
+		function distributeStats(stats, maxStat, pointsAtRank, rank){
+			let statToPoints = new Map();
+			const pointsToDistribute = pointsAtRank[rank];
+			for( var i = 0; i < stats.length; i++ ) {
+				var stat = stats[i];
+				statToPoints.set(stat, 0);
+			}
+			for (var i = 0; i < pointsToDistribute; i++) {
+				const availableStats = stats.filter(stat => {
+					const isAvailable = statToPoints.get(stat) < maxStat;
+					return isAvailable;
+				});
+				const statIndex = randomIntInclusive(0, availableStats.length - 1);
+				const statToBump = availableStats[statIndex];
+				console.log("bump");
+				console.log(statToBump);
+				statToPoints.set(statToBump, statToPoints.get(statToBump) + 1);
+			}
+			console.log(statToPoints);
+			return statToPoints;
+		}
+		
         function calculateStats(pokemon, rank) {
             let stats = {
                 strength: pokemon["Str min"],
@@ -355,6 +388,12 @@
 					skillList.push(skill + ":" + stat.toString());
 				}
 			}
+			var socialList = [];
+			for (let [skill, stat] of pokemon.socialStats) {
+				if (skill){
+					socialList.push(skill + ":" + stat.toString());
+				}
+			}
 			console.log(skillList);
             output.innerHTML = `
                 <div class="pokemon-card">
@@ -378,8 +417,10 @@
                     </ul>
 					<h3>Skills:</h3>
 						${skillList.map(skill => `<li>${skill}</li>`).join('')}
-
                     <ul>
+					<h3> Social Attributes </h3>
+					<ul>
+					${socialList.map(social => `<li>${social}</li>`).join('')}
                     </ul>
                 </div>
             `;
