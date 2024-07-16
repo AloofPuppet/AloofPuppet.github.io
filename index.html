@@ -40,6 +40,8 @@
     <button onclick="generatePokemon()">Generate Pokemon</button>
 
     <div id="output"></div>
+	
+	<p> Project by: Samantha Rains <br> Manual Code: Peter Lonjers <br> Other code: Claud AI with prompt engineering by Steven Skorheim </p>
 
     <script>
         let pokemonData = [];
@@ -52,10 +54,6 @@
 		let exclusions = [];
 		const max_rank = 5;
 		const rankNames = {"0":"Starter", "1":"Beginner","2":"Amateur","3":"Ace","4":"Pro","5":"Master",};
-		const skills = ["Brawl", "Channel", "Clash",
-						"Evasion", "Alert", "Athletic",
-						"Nature", "Stealth", "Allure",
-						"Etiquette", "Intimidate", "Perform"];
 
         //const dbName = 'PokeRolePokemon - Sheet1(1) (1).csv';
 		const dbName = 'pokeroledatabase.csv';
@@ -80,7 +78,7 @@
                     .map(v => v.trim().replace(/^"""|"""$/g, '').replace(/^"|"$/g, ''));
                 return headers.reduce((obj, header, index) => {
                     let value = values[index];
-                    if (['Types', 'Environment', 'Abilities'].includes(header)) {
+                    if (['Types', 'Environment', 'Abilities', 'Gender'].includes(header)) {
                         value = value.replace(/^\[|\]$/g, '').split(';').map(item => item.trim().replace(/^"|"$/g, ''));
                     } else if (header === 'Moves') {
                         value = value.replace(/^\[|\]$/g, '').split('];[').map(move => {
@@ -242,15 +240,21 @@
 			}				
 
             const selectedPokemon = filteredPokemon[Math.floor(Math.random() * filteredPokemon.length)];
+			console.log(selectedPokemon);
             const moves = selectMoves(selectedPokemon.Moves, selectedPokemon.rank);
             
             try {
                 const stats = calculateStats(selectedPokemon, selectedPokemon.rank);
                 const skillStats = calculateSkillStats(selectedPokemon);
 				const socialStats = calculateSocialStats(selectedPokemon);
+				let gender = "unknown";
+				if(selectedPokemon.Gender.length == 1){
+					gender = selectedPokemon.Gender[0];
+				}
                 return {
-                    pokemon_name: selectedPokemon.Name,
-                    pokemon_pic: selectedPokemon.Pic,
+                    name: selectedPokemon.Name,
+                    picture_url: selectedPokemon.Pic,
+					gender: gender,
                     type: selectedPokemon.Types,
                     rank: selectedPokemon.rank,
                     ability: selectedPokemon.Abilities[Math.floor(Math.random() * selectedPokemon.Abilities.length)],
@@ -271,53 +275,44 @@
         }
 
 		function calculateSkillStats(pokemon) {
-			const rank = pokemon.rank;
-			const maxSkillStat = rank + 1;
+			const maxSkillStat = pokemon.rank + 1;
 			const pointsAtRank = {0:5, 1:9, 2: 12, 3: 14, 4:15, 5:15};
-			const pointsToDistribute = pointsAtRank[rank];
-			let skillStats = new Map();
-			for( var i = 0; i < skills.length; i++ ) {
-				var skill = skills[i];
-				skillStats.set(skill, 0);
-			}
-			for (var i = 0; i < pointsToDistribute; i++) {
-				const availableSkills = skills.filter(skill => {
-					const isAvailable = skillStats.get(skill) < maxSkillStat;
-					return isAvailable;
-				});
-				const skillIndex = randomIntInclusive(0, availableSkills.length - 1);
-				const skillToBump = availableSkills[skillIndex];
-				skillStats.set(skillToBump, skillStats.get(skillToBump) + 1);
-			}
-			console.log(skillStats);
-			return skillStats;
+			const stats = ["Brawl", "Channel", "Clash",
+						   "Evasion", "Alert", "Athletic",
+						   "Nature", "Stealth", "Allure",
+						   "Etiquette", "Intimidate", "Perform"];
+			return distributeStats(stats, maxSkillStat, pointsAtRank, pokemon.rank, 0);
 		}
 		
 		function calculateSocialStats(pokemon){
-			const pointsAtRank = {0:1, 1:2, 2:5, 3:7, 4:9, 5:11};
+			const pointsAtRank = {0:0, 1:2, 2:4, 3:6, 4:8, 5:10};
 			const stats = ["Tough", "Cool", "Clever", "Beauty", "Cute"];
-			return distributeStats(stats, 5, pointsAtRank, pokemon.rank);
+			return distributeStats(stats, 5, pointsAtRank, pokemon.rank, 1);
 		}
 		
-		function distributeStats(stats, maxStat, pointsAtRank, rank){
+		function distributeStats(stats, maxStat, pointsAtRank, rank, initialStat){
 			let statToPoints = new Map();
 			const pointsToDistribute = pointsAtRank[rank];
 			for( var i = 0; i < stats.length; i++ ) {
 				var stat = stats[i];
-				statToPoints.set(stat, 1);
+				statToPoints.set(stat, initialStat);
 			}
 			for (var i = 0; i < pointsToDistribute; i++) {
 				const availableStats = stats.filter(stat => {
 					const isAvailable = statToPoints.get(stat) <= maxStat;
 					return isAvailable;
 				});
+				if(availableStats.length < 1) {
+					console.log("all stats at maximum");
+					break;
+				}
 				const statIndex = randomIntInclusive(0, availableStats.length - 1);
 				const statToBump = availableStats[statIndex];
-				console.log("bump");
-				console.log(statToBump);
+				//console.log("bump skill");
+				//console.log(statToBump);
 				statToPoints.set(statToBump, statToPoints.get(statToBump) + 1);
 			}
-			console.log(statToPoints);
+			//console.log(statToPoints);
 			return statToPoints;
 		}
 		
@@ -382,7 +377,6 @@
             const output = document.getElementById('output');
 			const  displayRank = rankNames[pokemon.rank];
 			var skillList = []
-			console.log(pokemon.skillStats.size);
 			for (let [skill, stat] of pokemon.skillStats) {
 				if (skill){
 					skillList.push(skill + ":" + stat.toString());
@@ -394,14 +388,14 @@
 					socialList.push(skill + ":" + stat.toString());
 				}
 			}
-			console.log(skillList);
             output.innerHTML = `
                 <div class="pokemon-card">
-                    <h2>${pokemon.pokemon_name}</h2>
-                    <img src="images/${pokemon.pokemon_pic}" alt="${pokemon.pokemon_name}" style="max-width: 200px;">
+                    <h2>${pokemon.name}</h2>
+                    <img src="${pokemon.picture_url}" alt="${pokemon.name}" style="max-width: 200px;">
                     <p><strong>Type:</strong> ${pokemon.type.join(', ')}</p>
                     <p><strong>Rank:</strong> ${displayRank}</p>
                     <p><strong>Ability:</strong> ${pokemon.ability}</p>
+					<p><strong>Gender:</strong> ${pokemon.gender}</p>
                     <h3>Stats:</h3>
                     <ul>
                         <li>HP: ${pokemon.hp}</li>
@@ -416,11 +410,12 @@
                         ${pokemon.moves.map(move => `<li>${move}</li>`).join('')}
                     </ul>
 					<h3>Skills:</h3>
-						${skillList.map(skill => `<li>${skill}</li>`).join('')}
-                    <ul>
-					<h3> Social Attributes </h3>
 					<ul>
-					${socialList.map(social => `<li>${social}</li>`).join('')}
+						${skillList.map(skill => `<li>${skill}</li>`).join('')}
+                    </ul>
+					<h3>Social Attributes:</h3>
+					<ul>
+					    ${socialList.map(social => `<li>${social}</li>`).join('')}
                     </ul>
                 </div>
             `;
