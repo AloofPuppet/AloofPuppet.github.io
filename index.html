@@ -54,8 +54,6 @@
 		let exclusions = [];
 		const max_rank = 5;
 		const rankNames = {"0":"Starter", "1":"Beginner","2":"Amateur","3":"Ace","4":"Pro","5":"Master",};
-
-        //const dbName = 'PokeRolePokemon - Sheet1(1) (1).csv';
 		const dbName = 'pokeroledatabase.csv';
 		
         fetch(dbName)
@@ -242,14 +240,22 @@
             const selectedPokemon = filteredPokemon[Math.floor(Math.random() * filteredPokemon.length)];
 			console.log(selectedPokemon);
             const moves = selectMoves(selectedPokemon.Moves, selectedPokemon.rank);
+			const natures = ["Adamant","Bashful","Bold","Brave","Calm","Careful",
+							 "Docile","Gentle","Hardy","Hasty","Impish","Jolly",
+							 "Lax","Lonely","Mild","Modest","Naive","Naughty",
+							 "Quiet","Quirky","Rash","Relaxed","Sassy","Serious" ,"Timid"];
+			let randomIndex = randomIntInclusive(0, natures.length - 1);
+			const nature = natures[randomIndex];
+
             
             try {
                 const stats = calculateStats(selectedPokemon, selectedPokemon.rank);
                 const skillStats = calculateSkillStats(selectedPokemon);
 				const socialStats = calculateSocialStats(selectedPokemon);
 				let gender = "unknown";
-				if(selectedPokemon.Gender.length == 1){
-					gender = selectedPokemon.Gender[0];
+				if(selectedPokemon.Gender.length > 0){
+					let randomIndex = randomIntInclusive(0, selectedPokemon.Gender.length - 1)
+					gender = selectedPokemon.Gender[randomIndex];
 				}
                 return {
                     name: selectedPokemon.Name,
@@ -266,7 +272,8 @@
                     insight: stats.insight,
                     moves: moves,
 					skillStats: skillStats,
-					socialStats: socialStats
+					socialStats: socialStats,
+					nature: nature
                 };
             } catch (error) {
                 console.error("Error generating Pokemon stats:", error);
@@ -308,11 +315,9 @@
 				}
 				const statIndex = randomIntInclusive(0, availableStats.length - 1);
 				const statToBump = availableStats[statIndex];
-				//console.log("bump skill");
-				//console.log(statToBump);
+
 				statToPoints.set(statToBump, statToPoints.get(statToBump) + 1);
 			}
-			//console.log(statToPoints);
 			return statToPoints;
 		}
 		
@@ -396,6 +401,7 @@
                     <p><strong>Rank:</strong> ${displayRank}</p>
                     <p><strong>Ability:</strong> ${pokemon.ability}</p>
 					<p><strong>Gender:</strong> ${pokemon.gender}</p>
+					<p><strong>Nature:</strong> ${pokemon.nature}</p>
                     <h3>Stats:</h3>
                     <ul>
                         <li>HP: ${pokemon.hp}</li>
