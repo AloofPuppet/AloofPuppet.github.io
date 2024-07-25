@@ -16,12 +16,29 @@
             padding: 10px;
         }
         .pokemon-card {
+			display:flex;
+			flex-wrap: wrap;
             border: 1px solid #ccc;
             border-radius: 10px;
             padding: 20px;
             margin: 10px;
             background-color: #f9f9f9;
         }
+       .infoArea {
+            margin: 0 auto;
+        }
+        h3 {
+            text-align: left;
+            margin-left: 0px;
+        }
+        ul {
+            list-style-type: none;
+            padding-left: 0px;
+        }
+        li {
+            margin-bottom: 2px;
+        }
+
         button { margin: 5px; padding: 5px 10px; }
         #output { margin-top: 20px; }
     </style>
@@ -29,19 +46,25 @@
 <body>
     <h1>Pokemon Generator</h1>
     <div class="filter-container" id="filter-container">
+	    <div> <button onclick="generatePokemon()">Generate Pokemon</button> </div>
+
         <div>
             <input type="text" id="excluded_box" placeholder="Enter Pokemon name" />
             <button onclick="addExcluded()">Add to excluded list</button>
             <p>Excluded pokemon:</p>
             <ol id="excluded_list"></ol>
         </div>
+
     </div>
 
-    <button onclick="generatePokemon()">Generate Pokemon</button>
 
     <div id="output"></div>
 	
-	<p> Project by: Samantha Rains <br> Manual Code: Peter Lonjers <br> Other code: Claud AI with prompt engineering by Steven Skorheim </p>
+	<a href="https://srains001.wixsite.com/pokerole-info"> moves and abilities index </a>
+	<p> <strong> Questions and comments:</strong> prrandomizerhelp@proton.me </p>
+	<p> <strong> Project by: </strong> Samantha Rains </p>
+	<p><strong> Manual code:</strong> Peter Lonjers </p>
+	<p> <strong> Other code:</strong> Claud AI with prompt engineering by Steven Skorheim </p>
 
     <script>
         let pokemonData = [];
@@ -358,6 +381,7 @@
         }
 
         function selectMoves(moves, rank) {
+			console.log(moves);
             const filteredMoves = moves.filter(move => move[1] <= rank);
             let numMoves;
             if (rank === 0) {
@@ -395,34 +419,49 @@
 			}
             output.innerHTML = `
                 <div class="pokemon-card">
-                    <h2>${pokemon.name}</h2>
-                    <img src="${pokemon.picture_url}" alt="${pokemon.name}" style="max-width: 200px;">
-                    <p><strong>Type:</strong> ${pokemon.type.join(', ')}</p>
-                    <p><strong>Rank:</strong> ${displayRank}</p>
-                    <p><strong>Ability:</strong> ${pokemon.ability}</p>
-					<p><strong>Gender:</strong> ${pokemon.gender}</p>
-					<p><strong>Nature:</strong> ${pokemon.nature}</p>
-                    <h3>Stats:</h3>
-                    <ul>
-                        <li>HP: ${pokemon.hp}</li>
-                        <li>Strength: ${pokemon.strength}</li>
-                        <li>Dexterity: ${pokemon.dexterity}</li>
-                        <li>Vitality: ${pokemon.vitality}</li>
-                        <li>Special: ${pokemon.special}</li>
-                        <li>Insight: ${pokemon.insight}</li>
-                    </ul>
-                    <h3>Moves:</h3>
-                    <ul>
-                        ${pokemon.moves.map(move => `<li>${move}</li>`).join('')}
-                    </ul>
-					<h3>Skills:</h3>
-					<ul>
-						${skillList.map(skill => `<li>${skill}</li>`).join('')}
-                    </ul>
-					<h3>Social Attributes:</h3>
-					<ul>
-					    ${socialList.map(social => `<li>${social}</li>`).join('')}
-                    </ul>
+					<section class="infoArea">
+						<h2>${pokemon.name}</h2>
+						<img src="${pokemon.picture_url}" alt="${pokemon.name}" style="max-width: 200px;">
+					</section>
+					<section class="infoArea">
+						<h3> Properties: </h3>
+						<ul class="infoList">
+							<li><strong>Type:</strong> ${pokemon.type.join(', ')}</li>
+							<li><strong>Rank:</strong> ${displayRank}</li>
+							<li><strong>Ability:</strong> ${pokemon.ability}</li>
+							<li><strong>Gender:</strong> ${pokemon.gender}</li>
+							<li><strong>Nature:</strong> ${pokemon.nature}</li>
+						</ul>
+					</section>
+					<section class="infoArea">
+						<h3>Stats:</h3>
+						<ul class="infoList">
+							<li>HP: ${pokemon.hp}</li>
+							<li>Strength: ${pokemon.strength}</li>
+							<li>Dexterity: ${pokemon.dexterity}</li>
+							<li>Vitality: ${pokemon.vitality}</li>
+							<li>Special: ${pokemon.special}</li>
+							<li>Insight: ${pokemon.insight}</li>
+						</ul>
+					</section >
+					<section class="infoArea">
+						<h3>Moves:</h3>
+						<ul class="infoList">
+							${pokemon.moves.map(move => `<li>${move}</li>`).join('')}
+						</ul>
+					</section>
+					<section class="infoArea">
+						<h3>Skills:</h3>
+						<ul class="infoList">
+							${skillList.map(skill => `<li>${skill}</li>`).join('')}
+						</ul>
+					</section>
+					<section class="infoArea">
+						<h3>Social Attributes:</h3>
+						<ul class="infoList">
+							${socialList.map(social => `<li>${social}</li>`).join('')}
+						</ul>
+					</section>
                 </div>
             `;
         }
