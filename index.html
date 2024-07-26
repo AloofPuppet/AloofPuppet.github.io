@@ -102,9 +102,16 @@
                     if (['Types', 'Environment', 'Abilities', 'Gender'].includes(header)) {
                         value = value.replace(/^\[|\]$/g, '').split(';').map(item => item.trim().replace(/^"|"$/g, ''));
                     } else if (header === 'Moves') {
-                        value = value.replace(/^\[|\]$/g, '').split('];[').map(move => {
+						let moveListString = value.replace(/^\[|\]$/g, '');
+						let moveSplitter = '];[';
+						const altMoveSplitter = ']; ['
+						if (moveListString.split(altMoveSplitter).length > moveListString.split(moveSplitter).length) {
+							moveSplitter = altMoveSplitter;
+						}
+                        value = moveListString.split(moveSplitter).map(move => {
                             const [moveName, rank] = move.replace(/[\[\]]/g, '').split(';');
-                            return [moveName.trim().replace(/^"|"$/g, ''), parseInt(rank) || 0];
+							const moveRankMap = [moveName.trim().replace(/^"|"$/g, ''), parseInt(rank) || 0];
+                            return moveRankMap;
                         });
                     } else if (['Str min', 'Str max', 'Dex min', 'Dex max', 'Vit min', 'Vit Max', 'Spec Min', 'Spec Max', 'Insight Min', 'Insight Max', 'HP Min', 'Int Rank Min', 'Generation'].includes(header)) {
                         value = parseInt(value) || 0;
@@ -241,9 +248,25 @@
                 );
             });
 			
+			// remove impossible pokemon; those that have a min rank > than the highest allowed rank;
+			let highestFilterRank = -1;
+			for (rank of filters.rank) {
+				const intRank = parseInt(rank);
+				if(intRank > highestFilterRank) {
+					highestFilterRank = rank;
+				}
+			}
+			determinedFilteredPokemon = determinedFilteredPokemon.filter(pokemon => {
+				const min_rank = pokemon["Int Rank Min"];
+				return min_rank <= highestFilterRank;
+			})
+			
+			
 			if (determinedFilteredPokemon.length === 0) {
                 return null;
             }
+
+		
 			
 			var filtredPokemon = [];
 			while(true) {
@@ -261,7 +284,6 @@
 			}				
 
             const selectedPokemon = filteredPokemon[Math.floor(Math.random() * filteredPokemon.length)];
-			console.log(selectedPokemon);
             const moves = selectMoves(selectedPokemon.Moves, selectedPokemon.rank);
 			const natures = ["Adamant","Bashful","Bold","Brave","Calm","Careful",
 							 "Docile","Gentle","Hardy","Hasty","Impish","Jolly",
@@ -381,7 +403,6 @@
         }
 
         function selectMoves(moves, rank) {
-			console.log(moves);
             const filteredMoves = moves.filter(move => move[1] <= rank);
             let numMoves;
             if (rank === 0) {
